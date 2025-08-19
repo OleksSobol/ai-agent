@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-from functions.get_files_info import available_functions
+from functions.get_files_info import available_functions, call_function
 
 MODEL_NAME = "gemini-2.0-flash-001"
 ENV_API_KEY = "GEMINI_API_KEY"
@@ -33,6 +33,11 @@ def print_verbose_info(user_prompt, response, verbose):
         print("Prompt tokens:", response.usage_metadata.prompt_token_count)
         print("Response tokens:", response.usage_metadata.candidates_token_count)
 
+def print_func_output(function_call_result, args):
+      if not function_call_result.parts[0].function_response.response:
+           raise Exception(f"Error calling function: {function_call_result.parts[0].function_response.response}")
+      if function_call_result and args.verbose:
+          print(f"-> {function_call_result.parts[0].function_response.response}")
 
 
 def main():
@@ -72,7 +77,11 @@ def main():
         )
         if hasattr(response, "function_calls") and response.function_calls:
             for function_call_part in response.function_calls:
-                print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+                function_call_result = call_function(function_call_part, verbose=args.verbose)
+                print_func_output(function_call_result, args)
+               
+                
+
         else:
             print(response.text)
 

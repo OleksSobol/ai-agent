@@ -45,8 +45,9 @@ def get_file_content(working_directory, file_path):
         with open(abs_file_path, "r", encoding="utf-8") as f:
             join_str = f' [...File "{abs_file_path}" truncated at {MAX_CHARS} characters]'
             stream = f.read(MAX_CHARS)
-            
-            return stream + join_str
+            if len(stream) > MAX_CHARS:
+                return stream + join_str
+            return stream
     except Exception as e:
         return f'Error: {e}'
     
@@ -192,4 +193,49 @@ available_functions = types.Tool(
         schema_run_python_file,
         schema_write_file,
     ]
+)
+
+def call_function(function_call_part, verbose=False):
+    if verbose:
+        print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+    else:
+        print(f" - Calling function: {function_call_part.name}")
+
+    func_map = {
+        "get_files_info": get_files_info,
+        "get_file_content": get_file_content,
+        "run_python_file": run_python_file,
+        "write_file": write_file,
+    }
+
+    function_name = function_call_part.name
+    func = func_map.get(function_name)
+    if not func:
+        return types.Content(
+            role="tool",
+            parts=[
+                types.Part.from_function_response(
+                    name=function_name,
+                    response={"error": f"Unknown function: {function_name}"},
+                )
+            ],
+        )
+
+    # Prepare arguments, always set working_directory to "./calculator"
+    args = function_call_part.args.copy()
+    args["working_directory"] = "./calculator"
+
+    try:
+        function_result = func(**args)
+    except Exception as e:
+        function_result = f"Error: Exception during function call: {e}"
+
+    return types.Content(
+    role="tool",
+    parts=[
+        types.Part.from_function_response(
+            name=function_name,
+            response={"result": function_result},
+        )
+    ],
 )
