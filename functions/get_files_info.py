@@ -2,7 +2,7 @@ import os
 import subprocess
 from google.genai import types
 
-from config import MAX_CHARS
+from config import MAX_CHARS, WORKING_DIR
 
 def get_files_info(working_directory, directory="."):
     try:
@@ -222,8 +222,9 @@ def call_function(function_call_part, verbose=False):
         )
 
     # Prepare arguments, always set working_directory to "./calculator"
-    args = function_call_part.args.copy()
-    args["working_directory"] = "./calculator"
+    args = function_call_part.args.copy() if function_call_part.args else {}
+    # args = function_call_part.args.copy()
+    args["working_directory"] = WORKING_DIR
 
     try:
         function_result = func(**args)
